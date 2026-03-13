@@ -117,6 +117,7 @@ PRIMARY GENRES
 28 = Dance
 29 = Instrumental
 30 = Ambient
+31 = Ballad
 
 ────────────────────────
 SUBGENRES (Sample Structure – Continue Pattern)
@@ -492,11 +493,8 @@ Write your confident as 0 to 3.
 ────────────────────────
 [INPUT]
 ────────────────────────
-1.
-2.
-3.
-4.
 
+inputonhere
 
 Do NOT summarize.
 Do NOT shorten.

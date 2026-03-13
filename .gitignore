@@ -1,1 +1,8 @@
 .env
+.DS_Store
+browser.json
+test.json
+songs_to_review_backup.json
+songs_to_review_backup2.json
+gemini_output.json
+services/__pycache__
