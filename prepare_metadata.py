@@ -2,7 +2,7 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from services.youtube_service import get_playlist_videos
-from services.ytmusic_service import get_song_metadata
+from services.ytmusic_service import get_song_metadata, get_playlist_videos_ytmusic
 from services.gemini_service import analyze_songs
 
 PROCESSED_FILE = "processed_videos.txt"
@@ -18,7 +18,7 @@ def save_processed_ids(video_ids):
         for vid in video_ids:
             f.write(f"{vid}\n")
 
-def prepare_metadata(playlist_id, output_file="songs_to_review.json"):
+def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_review.json"):
     processed_ids = load_processed_ids()
     
     # Load existing data from the output file to append to it
@@ -34,8 +34,11 @@ def prepare_metadata(playlist_id, output_file="songs_to_review.json"):
     # Determine next index
     next_index = max([item.get('index', 0) for item in existing_data], default=0) + 1
     
-    print(f"Fetching videos from playlist: {playlist_id}...")
-    videos = get_playlist_videos(playlist_id)
+    print(f"Fetching videos from playlist: {playlist_id} using {api_choice.upper()} API...")
+    if api_choice == "youtube":
+        videos = get_playlist_videos(playlist_id)
+    else:
+        videos = get_playlist_videos_ytmusic(playlist_id)
     print(f"Found {len(videos)} videos.")
 
     # 1. Gather basic metadata for NEW videos only
@@ -92,7 +95,7 @@ def prepare_metadata(playlist_id, output_file="songs_to_review.json"):
         return
 
     # 2. Process through Gemini in batches
-    batch_size = 168
+    batch_size = 155
     all_ai_results = []
     new_processed_vids = []
     
@@ -100,7 +103,7 @@ def prepare_metadata(playlist_id, output_file="songs_to_review.json"):
         batch = songs_data[i:i+batch_size]
         # Pass both index and text to keep Gemini results synced
         ai_input_data = [
-            {"index": s['index'], "text": f"{s['extracted_title']} - {s['extracted_artist']}"} 
+            {"index": s['index'], "text": f"{s['video_title']} - {s['extracted_artist']}"} 
             for s in batch
         ]
         
@@ -145,6 +148,9 @@ def prepare_metadata(playlist_id, output_file="songs_to_review.json"):
     print(f"Done! {len(new_output)} new songs added to {output_file}. Total: {len(final_output)}.")
 
 if __name__ == "__main__":
-    playlist_id = input("Enter YouTube Playlist ID: ")
+    playlist_id = input("Enter Playlist ID: ").strip()
     if playlist_id:
-        prepare_metadata(playlist_id)
+        api_choice = input("Which API to use for playlist extraction? (youtube/ytmusic) [default: ytmusic]: ").strip().lower()
+        if not api_choice:
+            api_choice = "ytmusic"
+        prepare_metadata(playlist_id, api_choice=api_choice)

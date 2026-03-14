@@ -46,6 +46,27 @@ def get_song_metadata(video_id):
         print(f"Error fetching metadata for {video_id}: {e}")
         return None
 
+def get_playlist_videos_ytmusic(playlist_id):
+    """
+    Fetches video IDs and titles from a YouTube Music playlist.
+    """
+    try:
+        # limit=None retrieves all tracks in the playlist
+        playlist = yt.get_playlist(playlist_id, limit=None)
+        videos = []
+        for track in playlist.get('tracks', []):
+            if track.get('videoId'):
+                videos.append({
+                    'video_id': track['videoId'],
+                    'title': track['title'],
+                    'url': f"https://music.youtube.com/watch?v={track['videoId']}"
+                })
+        return videos
+    except Exception as e:
+        print(f"Error fetching YTMusic playlist {playlist_id}: {e}")
+        return []
+
+
 if __name__ == "__main__":
     # Test with a known video ID
     test_id = "q-FP6bSqyy4" # Jung Kook - Seven
