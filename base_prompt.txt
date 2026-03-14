@@ -467,7 +467,7 @@ Write your confident as 0 to 3.
 ────────────────────────
 
 1. Jung Kook - Seven (feat. Latto)
-2. 베이식 - 만남은 쉽고 이별은 어려워 (Prod. TOIL) (feat. 릴러말즈 (Leellamarz))
+2. Hiiragi Magnetite - Tetoris
 
 ────────────────────────
 [EXAMPLE OUTPUT]
@@ -477,7 +477,6 @@ Write your confident as 0 to 3.
   {
     "index": 1,
     "group": "BTS",
-    "release_year": "2022",
     "featuring": ["Latto"],
     "producer": [],
     "genre": {
@@ -486,6 +485,21 @@ Write your confident as 0 to 3.
         "micro": 1004
     },
     "language": "English",
+    "confident": 3
+  },
+  {
+    "index": 2,
+    "group": null,
+    "featuring": [
+      "Kasane Teto"
+    ],
+    "producer": [],
+    "genre": {
+      "primary": 15,
+      "sub": 152,
+      "micro": 1085
+    },
+    "language": "Japanese",
     "confident": 3
   }
 ]
