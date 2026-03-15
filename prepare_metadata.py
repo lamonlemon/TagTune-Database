@@ -135,7 +135,9 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
             "ai_producer": ai_meta.get("producer", []),
             "ai_genre": ai_meta.get("genre", {}),
             "ai_language": ai_meta.get("language"),
-            "confident": ai_meta.get("confident", 0)
+            "genre_confident": ai_meta.get("genre_confident", 0),
+            "ai_audio": ai_meta.get("audio", {}),
+            "audio_confident": ai_meta.get("audio_confident", 0)
         }
         new_output.append(combined)
 

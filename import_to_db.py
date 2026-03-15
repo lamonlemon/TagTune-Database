@@ -80,6 +80,24 @@ def import_songs(json_file="songs_to_review.json"):
                         'micro_genre_id': m_id
                     }).execute()
 
+            # 6.5 Handle Audio Features
+            ai_audio = entry.get("ai_audio", {})
+            audio_confident = entry.get("audio_confident", 0)
+
+            if ai_audio and audio_confident > 0:
+                tempo = ai_audio.get("tempo")
+                if tempo not in ("slow", "mid", "fast"):
+                    tempo = None
+
+                supabase.table("song_audio_features").upsert({
+                    "song_id": db_song_index,
+                    "energy": ai_audio.get("energy"),
+                    "valence": ai_audio.get("valence"),
+                    "danceability": ai_audio.get("danceability"),
+                    "tempo": tempo,
+                    "acousticness": ai_audio.get("acousticness")
+                }).execute()
+
             # 7. Handle Featuring & Producers
             # These artists are also added to the 'artists' table first
             for feat_name in entry.get('ai_featuring', []):
