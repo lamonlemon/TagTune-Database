@@ -8,6 +8,22 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SECRET_KEY")
 
+CHECKPOINT_FILE = "imported_checkpoint.txt"
+
+def read_checkpoint():
+    """Read the last successfully imported song index from the checkpoint file."""
+    if os.path.exists(CHECKPOINT_FILE):
+        with open(CHECKPOINT_FILE, "r") as f:
+            content = f.read().strip()
+            if content:
+                return int(content)
+    return 0
+
+def write_checkpoint(index):
+    """Write the last successfully imported song index to the checkpoint file."""
+    with open(CHECKPOINT_FILE, "w") as f:
+        f.write(str(index))
+
 def import_songs(json_file="songs_to_review.json"):
     if not os.path.exists(json_file):
         print(f"Error: {json_file} NOT found.")
@@ -17,9 +33,23 @@ def import_songs(json_file="songs_to_review.json"):
     with open(json_file, "r", encoding="utf-8") as f:
         songs_data = json.load(f)
 
+    last_imported = read_checkpoint()
+    if last_imported > 0:
+        print(f"Resuming from checkpoint: last imported index = {last_imported}")
+
+    # Filter out already-imported songs
+    remaining = [s for s in songs_data if s.get('index', 0) > last_imported]
+
+    if not remaining:
+        print("All songs have already been imported. Nothing to do.")
+        return
+
+    print(f"Skipped {len(songs_data) - len(remaining)} already-imported songs. {len(remaining)} remaining.")
+
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-    for entry in songs_data:
+    for entry in remaining:
+        song_index = entry.get('index', 0)
         try:
             # 1. Handle Artist
             artist_name = entry.get('extracted_artist', 'Unknown')
@@ -80,23 +110,6 @@ def import_songs(json_file="songs_to_review.json"):
                         'micro_genre_id': m_id
                     }).execute()
 
-            # 6.5 Handle Audio Features
-            ai_audio = entry.get("ai_audio", {})
-            audio_confident = entry.get("audio_confident", 0)
-
-            if ai_audio and audio_confident > 0:
-                tempo = ai_audio.get("tempo")
-                if tempo not in ("slow", "mid", "fast"):
-                    tempo = None
-
-                supabase.table("song_audio_features").upsert({
-                    "song_id": db_song_index,
-                    "energy": ai_audio.get("energy"),
-                    "valence": ai_audio.get("valence"),
-                    "danceability": ai_audio.get("danceability"),
-                    "tempo": tempo,
-                    "acousticness": ai_audio.get("acousticness")
-                }).execute()
 
             # 7. Handle Featuring & Producers
             # These artists are also added to the 'artists' table first
@@ -112,10 +125,16 @@ def import_songs(json_file="songs_to_review.json"):
                     prod_id = prod_res.data[0]['artist_id']
                     supabase.table('song_producers').upsert({'song_id': db_song_index, 'artist_id': prod_id}).execute()
 
-            print(f"Imported/Updated: {entry.get('extracted_title')}")
+            # Update checkpoint after successful import
+            write_checkpoint(song_index)
+            print(f"[{song_index}] Imported: {entry.get('extracted_title')}")
             
         except Exception as e:
-            print(f"Error importing song {entry.get('extracted_title')}: {e}")
+            print(f"\n❌ Error importing song index {song_index} ({entry.get('extracted_title')}): {e}")
+            print(f"Stopped. Re-run the script to resume from index {last_imported}.")
+            return
+
+    print(f"\n✅ All {len(remaining)} songs imported successfully!")
 
 if __name__ == "__main__":
     import_songs()

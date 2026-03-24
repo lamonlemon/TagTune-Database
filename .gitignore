@@ -2,7 +2,7 @@
 .DS_Store
 browser.json
 test.json
-songs_to_review_backup.json
-songs_to_review_backup2.json
+songs_to_review.json
 gemini_output.json
+imported_checkpoint.txt
 services/__pycache__

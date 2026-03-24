@@ -32,15 +32,7 @@ Do not use code block such as `
         "micro": int
     },
     "language": string,
-    "genre_confident": int,
-    "audio": {
-        "energy": float,
-        "valence": float,
-        "danceability": float,
-        "tempo": string,
-        "acousticness": float
-    },
-    "audio_confident": int
+    "confident": int
   }
 ]
 
@@ -903,10 +895,10 @@ MICROGENRES
 1369 Afrobeats Reggae
 
 ────────────────────────
-[GENRE CONFIDENT RULE]
+[CONFIDENT RULE]
 ────────────────────────
 
-Write your genre_confident as 0 to 3.
+Write your confident as 0 to 3.
 This reflects how confident you are about the genre classification.
 
 3 = Very confident (well-known song/artist, clear genre)
@@ -914,39 +906,6 @@ This reflects how confident you are about the genre classification.
 1 = Uncertain
 0 = Unknown / guessing
 
-────────────────────────
-[AUDIO FEATURE SYSTEM]
-────────────────────────
-
-Estimate the following audio features based on your knowledge of the song.
-All float values are between 0.0 and 1.0.
-
-energy: Overall intensity and activity of the song.
-  0.0 = very calm, 1.0 = extremely intense
-
-valence: Musical positiveness / mood of the song.
-  0.0 = very dark/sad, 1.0 = very bright/happy
-
-danceability: How suitable the song is for dancing.
-  0.0 = not danceable, 1.0 = highly danceable
-
-tempo: Overall speed of the song.
-  MUST be one of: "slow" / "mid" / "fast"
-
-acousticness: How acoustic (non-electronic) the song sounds.
-  0.0 = fully electronic, 1.0 = fully acoustic
-
-────────────────────────
-[AUDIO CONFIDENT RULE]
-────────────────────────
-
-Write your audio_confident as 0 to 3.
-This reflects how confident you are about the audio feature estimates.
-
-3 = Very confident (you know this song well)
-2 = Fairly confident
-1 = Uncertain (estimating based on genre/artist style)
-0 = Unknown / guessing
 
 ────────────────────────
 [EXAMPLE INPUT]
@@ -971,15 +930,7 @@ This reflects how confident you are about the audio feature estimates.
         "micro": 1168
     },
     "language": "English",
-    "genre_confident": 3,
-    "audio": {
-        "energy": 0.8,
-        "valence": 0.85,
-        "danceability": 0.9,
-        "tempo": "fast",
-        "acousticness": 0.05
-    },
-    "audio_confident": 3
+    "confident": 3
   },
   {
     "index": 2,
@@ -992,15 +943,7 @@ This reflects how confident you are about the audio feature estimates.
       "micro": 1165
     },
     "language": "Japanese",
-    "genre_confident": 3,
-    "audio": {
-        "energy": 0.75,
-        "valence": 0.7,
-        "danceability": 0.65,
-        "tempo": "mid",
-        "acousticness": 0.1
-    },
-    "audio_confident": 2
+    "confident": 3
   }
 ]
 

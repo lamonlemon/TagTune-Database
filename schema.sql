@@ -68,13 +68,3 @@ CREATE TABLE IF NOT EXISTS song_genres (
     sub_genre_id INTEGER REFERENCES genres(genre_id),
     micro_genre_id INTEGER REFERENCES genres(genre_id)
 );
-
--- 9. Create Song Audio Features table
-CREATE TABLE IF NOT EXISTS song_audio_features (
-    song_id INTEGER PRIMARY KEY REFERENCES songs(song_index),
-    energy FLOAT,
-    valence FLOAT,
-    danceability FLOAT,
-    tempo TEXT CHECK (tempo IN ('slow', 'mid', 'fast')),
-    acousticness FLOAT
-);
