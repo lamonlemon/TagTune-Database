@@ -4,5 +4,6 @@ browser.json
 test.json
 songs_to_review.json
 gemini_output.json
+processed_videos.txt
 imported_checkpoint.txt
 services/__pycache__
