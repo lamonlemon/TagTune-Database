@@ -1,9 +1,8 @@
 .env
 .DS_Store
-browser.json
-test.json
-songs_to_review.json
-gemini_output.json
+*.json
 processed_videos.txt
 imported_checkpoint.txt
+audio_features_checkpoint.txt
+audio_features_errors.txt
 services/__pycache__
