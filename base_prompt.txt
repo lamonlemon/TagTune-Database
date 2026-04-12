@@ -906,6 +906,26 @@ This reflects how confident you are about the genre classification.
 1 = Uncertain
 0 = Unknown / guessing
 
+────────────────────────
+[COVER SONG RULE]
+────────────────────────
+
+If the song title contains cover-related keywords such as:
+cover, covered by, (cover), 커버, カバー, 歌ってみた, cover by, etc.
+
+Then the song is a COVER SONG. You MUST:
+1. Extract cover_artists: the person(s) who performed the cover
+2. If there is muliple cover_artists, use featuring field for other cover artists
+3. Extract original_title: the original song title (remove cover artist names, "cover" keywords)
+4. Extract original_artist: the original song's artist
+5. Make is_cover = true
+6. Fill genre to null
+
+If the song is NOT a cover:
+"cover_artists": []
+"original_title": null
+"original_artist": null
+"is_cover": false
 
 ────────────────────────
 [EXAMPLE INPUT]
@@ -913,6 +933,7 @@ This reflects how confident you are about the genre classification.
 
 1. Jung Kook - Seven (feat. Latto)
 2. Hiiragi Magnetite - Tetoris
+3. Henceforth(Orangestar) / Hebi. cover - Hebi.
 
 ────────────────────────
 [EXAMPLE OUTPUT]
@@ -930,7 +951,11 @@ This reflects how confident you are about the genre classification.
         "micro": 1168
     },
     "language": "English",
-    "confident": 3
+    "confident": 3,
+    "is_cover": false,
+    "cover_artists": [],
+    "original_title": null,
+    "original_artist": null
   },
   {
     "index": 2,
@@ -943,7 +968,28 @@ This reflects how confident you are about the genre classification.
       "micro": 1165
     },
     "language": "Japanese",
-    "confident": 3
+    "confident": 3,
+    "is_cover": false,
+    "cover_artists": [],
+    "original_title": null,
+    "original_artist": null
+  },
+  {
+    "index": 3,
+    "group": null,
+    "featuring": [],
+    "producer": [],
+    "genre": {
+      "primary": null,
+      "sub": null,
+      "micro": null
+    },
+    "language": "Japanese",
+    "confident": 3,
+    "is_cover": true,
+    "cover_artists": ["Hebi."],
+    "original_title": "Henceforth",
+    "original_artist": "Orangestar"
   }
 ]
 
