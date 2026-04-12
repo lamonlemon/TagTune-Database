@@ -37,6 +37,17 @@ def get_playlist_videos(playlist_id):
             
     return videos
 
+def get_video_description(video_id):
+    try:
+        youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+        request = youtube.videos().list(part="snippet", id=video_id)
+        response = request.execute()
+        if response.get('items'):
+            return response['items'][0]['snippet'].get('description', '')
+    except Exception as e:
+        print(f"Error fetching description for {video_id}: {e}")
+    return ""
+
 if __name__ == "__main__":
     # Test with a known playlist ID
     test_id = "RDCLAK5uy_lreHzXUqXcoHfNcdPKh-aL-h4k5fckfY4" # Example public playlist

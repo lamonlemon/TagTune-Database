@@ -1,11 +1,29 @@
 import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
-from services.youtube_service import get_playlist_videos
+from ytmusicapi import YTMusic
+from services.youtube_service import get_playlist_videos, get_video_description
 from services.ytmusic_service import get_song_metadata, get_playlist_videos_ytmusic
 from services.gemini_service import analyze_songs
 
+yt = YTMusic()
+
 PROCESSED_FILE = "processed_videos.txt"
+
+def extract_original_youtube_id(description):
+    if not description: return None
+    lines = description.split('\n')
+    for line in lines:
+        lower_line = line.lower()
+        # Trigger keywords: English, Korean, Japanese, or the presence of a shortened YouTube link
+        keywords = ['original', '원본', '본가', 'orig', '原曲', 'ご本家', 'youtu.be']
+        if any(kw in lower_line for kw in keywords):
+            # More robust regex for various YouTube URL formats (watch, shorts, embed, youtu.be)
+            match = re.search(r'(?:v=|v\/|embed\/|shorts\/|youtu\.be\/)([a-zA-Z0-9_-]{11})', line)
+            if match:
+                return match.group(1)
+    return None
 
 def load_processed_ids():
     if not os.path.exists(PROCESSED_FILE):
@@ -75,10 +93,7 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
             "is_cover": False
         }
         
-        # Cover detection
-        cover_keywords = ["cover", "커버", "remix", "리믹스", "live", "라이브", "歌ってみた", "カバー"]
-        if any(kw in vid_data['title'].lower() for kw in cover_keywords):
-            song_entry["is_cover"] = True
+        # Cover detection is now handled by AI instead of hardcoded keywords
             
         return song_entry
 
@@ -130,13 +145,72 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
         
         combined = {
             **song,
+            "is_cover": ai_meta.get("is_cover", False),  # AI judges this
             "ai_group": ai_meta.get("group"),
             "ai_featuring": ai_meta.get("featuring", []),
             "ai_producer": ai_meta.get("producer", []),
             "ai_genre": ai_meta.get("genre", {}),
             "ai_language": ai_meta.get("language"),
-            "confident": ai_meta.get("confident", 0)
+            "genre_confident": ai_meta.get("genre_confident", 0),
+            "ai_audio": ai_meta.get("audio", {}),
+            "audio_confident": ai_meta.get("audio_confident", 0),
+            "cover_artists": ai_meta.get("cover_artists", []),
+            "original_title": ai_meta.get("original_title"),
+            "original_artist": ai_meta.get("original_artist"),
+            "original_youtube_id": ai_meta.get("original_youtube_id"),
+            "original_url": f"https://music.youtube.com/watch?v={ai_meta.get('original_youtube_id')}" if ai_meta.get("original_youtube_id") else None
         }
+
+        if combined.get("is_cover") and not combined.get("original_youtube_id"):
+            desc = get_video_description(song['video_id'])
+            if desc:
+                original_yt_id_from_desc = extract_original_youtube_id(desc)
+                if original_yt_id_from_desc:
+                    try:
+                        orig_details = yt.get_song(original_yt_id_from_desc)
+                        if orig_details:
+                            vDetails = orig_details.get("videoDetails", {})
+                            search_title = vDetails.get("title", "")
+                            search_artist = vDetails.get("author", "")
+                            if search_title and search_artist:
+                                search_results = yt.search(f"{search_title} {search_artist}", filter="songs", limit=1)
+                                if search_results:
+                                    top_result = search_results[0]
+                                    combined["original_youtube_id"] = top_result.get("videoId")
+                                    combined["original_url"] = f"https://music.youtube.com/watch?v={top_result.get('videoId')}"
+                                    combined["original_title"] = top_result.get("title", combined.get("original_title"))
+                                    artists_list = top_result.get("artists", [])
+                                    if artists_list:
+                                        combined["original_artist"] = ", ".join([a.get("name", "") for a in artists_list])
+                                else:
+                                    combined["original_youtube_id"] = original_yt_id_from_desc
+                                    combined["original_url"] = f"https://music.youtube.com/watch?v={original_yt_id_from_desc}"
+                            else:
+                                combined["original_youtube_id"] = original_yt_id_from_desc
+                                combined["original_url"] = f"https://music.youtube.com/watch?v={original_yt_id_from_desc}"
+                        else:
+                            combined["original_youtube_id"] = original_yt_id_from_desc
+                            combined["original_url"] = f"https://music.youtube.com/watch?v={original_yt_id_from_desc}"
+                    except Exception as e:
+                        print(f"Error parsing original id from desc: {e}")
+                        combined["original_youtube_id"] = original_yt_id_from_desc
+                        combined["original_url"] = f"https://music.youtube.com/watch?v={original_yt_id_from_desc}"
+
+            # If still missing, fallback to AI provided title/artist search
+            if not combined.get("original_youtube_id"):
+                original_title = combined.get("original_title")
+                original_artist = combined.get("original_artist")
+                if original_title and original_artist:
+                    try:
+                        search_results = yt.search(f"{original_title} {original_artist}", filter="songs", limit=3)
+                        if search_results:
+                            original_video_id = search_results[0].get("videoId")
+                            if original_video_id:
+                                combined["original_youtube_id"] = original_video_id
+                                combined["original_url"] = f"https://music.youtube.com/watch?v={original_video_id}"
+                    except Exception as e:
+                        print(f"ytmusicapi search failed for original: {e}")
+
         new_output.append(combined)
 
     # 4. Combine with existing and save

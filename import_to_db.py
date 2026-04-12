@@ -52,7 +52,10 @@ def import_songs(json_file="songs_to_review.json"):
         song_index = entry.get('index', 0)
         try:
             # 1. Handle Artist
-            artist_name = entry.get('extracted_artist', 'Unknown')
+            if entry.get('is_cover') and entry.get('cover_artists'):
+                artist_name = entry['cover_artists'][0]  # Main cover artist (channel owner)
+            else:
+                artist_name = entry.get('extracted_artist', 'Unknown')
             artist_res = supabase.table('artists').upsert({'name': artist_name}, on_conflict='name').execute()
             artist_id = artist_res.data[0]['artist_id']
 
@@ -89,26 +92,38 @@ def import_songs(json_file="songs_to_review.json"):
             # This 'db_song_index' is the actual unique ID from Supabase
             db_song_index = song_res.data[0]['song_index']
 
-            # 5. Handle original_song_id (If it's an original song, it points to itself)
-            # For covers, you would manually update this to point to the original song's DB ID.
-            if not entry.get('is_cover'):
+            # 5. Handle original_song_id & Genres
+            if entry.get('is_cover'):
+                original_url = entry.get('original_url')
+                if original_url:
+                    result = supabase.table('songs').select('song_index') \
+                        .eq('url', original_url).execute()
+                    if result.data:
+                        supabase.table('songs').update({
+                            'original_song_id': result.data[0]['song_index']
+                        }).eq('song_index', db_song_index).execute()
+                    else:
+                        with open('cover_missing_original.log', 'a') as f:
+                            f.write(f"[{db_song_index}] {entry.get('extracted_title')} → original not in DB: {original_url}\n")
+                # DO NOT insert into song_genres for cover songs
+            else:
                 supabase.table('songs').update({'original_song_id': db_song_index}).eq('song_index', db_song_index).execute()
-
-            # 6. Handle Genres
-            ai_genres = entry.get('ai_genre', {})
-            if ai_genres and isinstance(ai_genres, dict):
-                # Ensure all required genre IDs are present
-                p_id = ai_genres.get('primary')
-                s_id = ai_genres.get('sub')
-                m_id = ai_genres.get('micro')
                 
-                if p_id:
-                    supabase.table('song_genres').upsert({
-                        'song_id': db_song_index,
-                        'primary_genre_id': p_id,
-                        'sub_genre_id': s_id,
-                        'micro_genre_id': m_id
-                    }).execute()
+                # Original song — insert genre normally
+                ai_genres = entry.get('ai_genre', {})
+                if ai_genres and isinstance(ai_genres, dict):
+                    # Ensure all required genre IDs are present
+                    p_id = ai_genres.get('primary')
+                    s_id = ai_genres.get('sub')
+                    m_id = ai_genres.get('micro')
+                    
+                    if p_id:
+                        supabase.table('song_genres').upsert({
+                            'song_id': db_song_index,
+                            'primary_genre_id': p_id,
+                            'sub_genre_id': s_id,
+                            'micro_genre_id': m_id
+                        }).execute()
 
 
             # 7. Handle Featuring & Producers
@@ -125,13 +140,24 @@ def import_songs(json_file="songs_to_review.json"):
                     prod_id = prod_res.data[0]['artist_id']
                     supabase.table('song_producers').upsert({'song_id': db_song_index, 'artist_id': prod_id}).execute()
 
+            for cover_artist_name in entry.get('cover_artists', []):
+                if cover_artist_name and cover_artist_name.strip():
+                    ca_res = supabase.table('artists').upsert(
+                        {'name': cover_artist_name}, on_conflict='name'
+                    ).execute()
+                    ca_id = ca_res.data[0]['artist_id']
+                    supabase.table('song_featuring').upsert({
+                        'song_id': db_song_index,
+                        'artist_id': ca_id
+                    }).execute()
+
             # Update checkpoint after successful import
             write_checkpoint(song_index)
             print(f"[{song_index}] Imported: {entry.get('extracted_title')}")
             
         except Exception as e:
             print(f"\n❌ Error importing song index {song_index} ({entry.get('extracted_title')}): {e}")
-            print(f"Stopped. Re-run the script to resume from index {last_imported}.")
+            print(f"Stopped. Re-run the script to resume from index {read_checkpoint()}.")
             return
 
     print(f"\n✅ All {len(remaining)} songs imported successfully!")
