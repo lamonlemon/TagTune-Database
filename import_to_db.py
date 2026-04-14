@@ -76,9 +76,23 @@ def import_songs(json_file="songs_to_review.json"):
                 }, on_conflict='title, artist_id').execute()
                 album_id = album_res.data[0]['album_id']
 
-            # 4. Insert Song (Primary Key 'song_index' is SERIAL, so it auto-increments in DB)
+            # 4. Determine original_song_id before insert
+            orig_id = song_index
+            if entry.get('is_cover'):
+                original_url = entry.get('original_url')
+                if original_url:
+                    result = supabase.table('songs').select('song_index').eq('url', original_url).execute()
+                    if result.data:
+                        orig_id = result.data[0]['song_index']
+                    else:
+                        with open('cover_missing_original.log', 'a') as f:
+                            f.write(f"[{song_index}] {entry.get('extracted_title')} → original not in DB: {original_url}\n")
+
+            # 5. Insert Song (Supply song_index and original_song_id explicitly)
             song_payload = {
+                'song_index': song_index,
                 'title': entry.get('extracted_title'),
+                'original_song_id': orig_id,
                 'artist_id': artist_id,
                 'album_id': album_id,
                 'group_id': group_id,
@@ -92,24 +106,8 @@ def import_songs(json_file="songs_to_review.json"):
             # This 'db_song_index' is the actual unique ID from Supabase
             db_song_index = song_res.data[0]['song_index']
 
-            # 5. Handle original_song_id & Genres
-            if entry.get('is_cover'):
-                original_url = entry.get('original_url')
-                if original_url:
-                    result = supabase.table('songs').select('song_index') \
-                        .eq('url', original_url).execute()
-                    if result.data:
-                        supabase.table('songs').update({
-                            'original_song_id': result.data[0]['song_index']
-                        }).eq('song_index', db_song_index).execute()
-                    else:
-                        with open('cover_missing_original.log', 'a') as f:
-                            f.write(f"[{db_song_index}] {entry.get('extracted_title')} → original not in DB: {original_url}\n")
-                # DO NOT insert into song_genres for cover songs
-            else:
-                supabase.table('songs').update({'original_song_id': db_song_index}).eq('song_index', db_song_index).execute()
-                
-                # Original song — insert genre normally
+            # 6. Handle Genres (Only for original songs)
+            if not entry.get('is_cover'):
                 ai_genres = entry.get('ai_genre', {})
                 if ai_genres and isinstance(ai_genres, dict):
                     # Ensure all required genre IDs are present

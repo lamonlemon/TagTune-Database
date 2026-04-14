@@ -32,7 +32,11 @@ Do not use code block such as `
         "micro": int
     },
     "language": string,
-    "confident": int
+    "confident": int,
+    "is_cover": bool,
+    "cover_artists": [],
+    "original_title": string,
+    "original_artist": string
   }
 ]
 

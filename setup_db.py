@@ -36,7 +36,7 @@ def populate_genres():
                     continue
                 seen_ids.add(gid)
                 
-                level = 1 if gid <= 30 else (2 if gid < 1000 else 3)
+                level = 1 if gid <= 50 else (2 if gid < 1000 else 3)
                 genres.append({
                     "genre_id": gid,
                     "name": name.strip(),

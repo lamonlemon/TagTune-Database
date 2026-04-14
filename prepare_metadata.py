@@ -32,9 +32,13 @@ def load_processed_ids():
         return set(line.strip() for line in f if line.strip())
 
 def save_processed_ids(video_ids):
+    if not video_ids:
+        print("Warning: No video IDs to save to processed_videos.txt")
+        return
     with open(PROCESSED_FILE, "a") as f:
         for vid in video_ids:
             f.write(f"{vid}\n")
+    print(f"Saved {len(video_ids)} video IDs to {PROCESSED_FILE}.")
 
 def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_review.json"):
     processed_ids = load_processed_ids()
@@ -110,9 +114,8 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
         return
 
     # 2. Process through Gemini in batches
-    batch_size = 100
+    batch_size = 150
     all_ai_results = []
-    new_processed_vids = []
     
     for i in range(0, len(songs_data), batch_size):
         batch = songs_data[i:i+batch_size]
@@ -125,9 +128,6 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
         print(f"Calling Gemini for batch {i//batch_size + 1}...")
         ai_results = analyze_songs(ai_input_data)
         all_ai_results.extend(ai_results)
-        
-        # Record successful extracted IDs
-        new_processed_vids.extend([s['video_id'] for s in batch])
 
     # 3. Merge AI results back into main data
     ai_map = {}
@@ -151,9 +151,7 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
             "ai_producer": ai_meta.get("producer", []),
             "ai_genre": ai_meta.get("genre", {}),
             "ai_language": ai_meta.get("language"),
-            "genre_confident": ai_meta.get("genre_confident", 0),
-            "ai_audio": ai_meta.get("audio", {}),
-            "audio_confident": ai_meta.get("audio_confident", 0),
+            "confident": ai_meta.get("confident", ai_meta.get("confident", 0)),
             "cover_artists": ai_meta.get("cover_artists", []),
             "original_title": ai_meta.get("original_title"),
             "original_artist": ai_meta.get("original_artist"),
@@ -211,6 +209,13 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
                     except Exception as e:
                         print(f"ytmusicapi search failed for original: {e}")
 
+        # Log if original song is missing in processed_videos.txt
+        if combined.get("is_cover"):
+            orig_id = combined.get("original_youtube_id")
+            if orig_id and orig_id not in processed_ids:
+                with open("cover_missing_original.log", "a", encoding="utf-8") as f:
+                    f.write(f"[{combined['index']}] {combined['video_title']} (Cover) -> Original {orig_id} NOT found in processed_videos.txt\n")
+
         new_output.append(combined)
 
     # 4. Combine with existing and save
@@ -218,7 +223,9 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(final_output, f, indent=2, ensure_ascii=False)
     
-    save_processed_ids(new_processed_vids)
+    # Track all newly processed IDs
+    newly_processed_ids = [s['video_id'] for s in songs_data]
+    save_processed_ids(newly_processed_ids)
     print(f"Done! {len(new_output)} new songs added to {output_file}. Total: {len(final_output)}.")
 
 if __name__ == "__main__":
