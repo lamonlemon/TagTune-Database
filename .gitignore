@@ -1,6 +1,8 @@
 .env
 .DS_Store
 *.json
+*.log
+
 processed_videos.txt
 imported_checkpoint.txt
 audio_features_checkpoint.txt
