@@ -919,7 +919,7 @@ cover, covered by, (cover), 커버, カバー, 歌ってみた, cover by, etc.
 
 Then the song is a COVER SONG. You MUST:
 1. Extract cover_artists: the person(s) who performed the cover
-2. If there is muliple cover_artists, use featuring field for other cover artists
+2. cover_artists: List of artists who performed the cover. The FIRST artist must be the channel owner / main uploader. Remaining artists follow in title order.
 3. Extract original_title: the original song title (remove cover artist names, "cover" keywords)
 4. Extract original_artist: the original song's artist
 5. Make is_cover = true

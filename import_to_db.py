@@ -144,10 +144,13 @@ def import_songs(json_file="songs_to_review.json"):
                         {'name': cover_artist_name}, on_conflict='name'
                     ).execute()
                     ca_id = ca_res.data[0]['artist_id']
-                    supabase.table('song_featuring').upsert({
-                        'song_id': db_song_index,
-                        'artist_id': ca_id
-                    }).execute()
+                    
+                    # cover_artists[0]은 이미 artist_id로 들어갔으니 피처링 제외
+                    if cover_artist_name != entry.get('cover_artists', [])[0]:
+                        supabase.table('song_featuring').upsert({
+                            'song_id': db_song_index,
+                            'artist_id': ca_id
+                        }).execute()
 
             # Update checkpoint after successful import
             write_checkpoint(song_index)
