@@ -33,7 +33,7 @@ def analyze_songs(batch_data):
 
     try:
         response = client.models.generate_content(
-            model='gemini-3-flash-preview',
+            model='gemini-3.5-flash',
             contents=final_prompt
         )
         
