@@ -1,0 +1,9 @@
+[1] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[3] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[4] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[5] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[6] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[7] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[8] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[9] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}
+[10] {'message': 'expected 768 dimensions, not 3072', 'code': '22000', 'hint': None, 'details': None}

@@ -36,6 +36,8 @@ SECURITY DEFINER
 AS $$
 BEGIN
   TRUNCATE TABLE 
+    song_audio_features,
+    song_vectors,
     song_genres, 
     song_featuring, 
     song_producers, 
