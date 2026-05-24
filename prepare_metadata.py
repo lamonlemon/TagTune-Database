@@ -114,7 +114,7 @@ def prepare_metadata(playlist_id, api_choice="ytmusic", output_file="songs_to_re
         return
 
     # 2. Process through Gemini in batches
-    batch_size = 150
+    batch_size = 200
     all_ai_results = []
     
     for i in range(0, len(songs_data), batch_size):

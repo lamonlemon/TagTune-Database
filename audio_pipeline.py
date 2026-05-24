@@ -8,7 +8,7 @@ from supabase import create_client, Client
 import essentia.standard as es
 import essentia
 import numpy as np
-import google.generativeai as genai
+from google import genai
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 essentia.log.warningActive = False
@@ -20,7 +20,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SECRET_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-genai.configure(api_key=GEMINI_API_KEY)
+genai_client = genai.Client(api_key=GEMINI_API_KEY)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Checkpoint functions
@@ -104,11 +104,11 @@ def extract_features(audio_path):
     }
 
 def get_embedding(text):
-    result = genai.embed_content(
+    response = genai_client.models.embed_content(
         model="gemini-embedding-2",
-        content=text
+        contents=text
     )
-    return result['embedding']
+    return response.embeddings[0].values
 
 def download_audio(video_id, output_path):
     url = f"https://www.youtube.com/watch?v={video_id}"
@@ -143,6 +143,32 @@ def main():
     if end_line > len(lines): end_line = len(lines)
     
     target_video_ids = lines[start_line-1 : end_line]
+    
+    # Read songs_to_review.json
+    songs_to_review_file = "songs_to_review.json"
+    if not os.path.exists(songs_to_review_file):
+        print(f"Error: {songs_to_review_file} not found")
+        return
+        
+    print(f"Loading {songs_to_review_file}...")
+    with open(songs_to_review_file, "r", encoding="utf-8") as f:
+        review_data = json.load(f)
+        
+    # Map video_id to entry
+    songs_map = {}
+    for entry in review_data:
+        v_id = entry.get("video_id")
+        if v_id:
+            songs_map[v_id] = entry
+        else:
+            url = entry.get("url", "")
+            if "watch?v=" in url:
+                parsed = urllib.parse.urlparse(url)
+                qs = urllib.parse.parse_qs(parsed.query)
+                extracted_vid = qs.get("v", [None])[0]
+                if extracted_vid:
+                    songs_map[extracted_vid] = entry
+                    
     processed_songs = get_processed_songs()
     OUTPUT_FILE = "audio_features_output.json"
     
@@ -156,32 +182,30 @@ def main():
         temp_mp3 = f"temp_{video_id}.mp3"
         
         try:
-            # 1. Look up song_index from Supabase
-            res = supabase.table("songs").select("song_index, artist_id").ilike("url", f"%{video_id}%").execute()
-            if not res.data:
-                print(f"Warning: video_id {video_id} not found in Supabase songs table. Skipping.")
+            # 1. Look up song entry from local songs_map
+            entry = songs_map.get(video_id)
+            if not entry:
+                print(f"Warning: video_id {video_id} not found in songs_to_review.json. Skipping.")
                 continue
                 
-            song_index = res.data[0]['song_index']
-            artist_id = res.data[0]['artist_id']
+            song_index = entry.get("index")
+            if song_index is None:
+                print(f"Warning: No index found for video_id {video_id}. Skipping.")
+                continue
             
             if song_index in processed_songs:
                 print(f"Song {song_index} already processed, skipping.")
                 continue
                 
-            # 2. Fetch artist name
-            artist_res = supabase.table("artists").select("name").eq("artist_id", artist_id).execute()
-            artist_name = "Unknown"
-            if artist_res.data:
-                artist_name = artist_res.data[0]['name']
+            # 2. Get artist name
+            artist_name = entry.get("extracted_artist", "Unknown")
                 
             # Fetch genres for the song
-            genre_res = supabase.table("song_genres").select("primary_genre_id, sub_genre_id, micro_genre_id").eq("song_id", song_index).execute()
+            ai_genre = entry.get("ai_genre", {})
             genres_list = []
-            if genre_res.data:
-                row = genre_res.data[0]
-                for gid_field in ["primary_genre_id", "sub_genre_id", "micro_genre_id"]:
-                    gid = row.get(gid_field)
+            if isinstance(ai_genre, dict):
+                for gid_field in ["primary", "sub", "micro"]:
+                    gid = ai_genre.get(gid_field)
                     if gid and int(gid) in GENRES_MAP:
                         genres_list.append(GENRES_MAP[int(gid)])
                         

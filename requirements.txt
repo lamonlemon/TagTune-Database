@@ -1,0 +1,7 @@
+essentia_tensorflow==2.1b6.dev1389
+google_api_python_client==2.192.0
+numpy==2.4.6
+protobuf==7.35.0
+python-dotenv==1.2.2
+supabase==2.30.0
+ytmusicapi==1.11.5
