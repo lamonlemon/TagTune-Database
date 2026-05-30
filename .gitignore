@@ -2,9 +2,9 @@
 .DS_Store
 *.json
 *.log
+*.txt
 
-processed_videos.txt
-imported_checkpoint.txt
-audio_features_checkpoint.txt
-audio_features_errors.txt
+!base_prompt.txt
+!genre_list.txt
+
 services/__pycache__
