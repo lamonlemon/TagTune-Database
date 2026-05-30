@@ -126,10 +126,10 @@ def download_audio(video_id, output_path):
     if res.returncode != 0:
         raise Exception(f"yt-dlp failed: {res.stderr.decode()}")
 
-def main():
+def main(start_line, end_line):
     try:
-        start_line = int(input("Enter start line number: "))
-        end_line = int(input("Enter end line number: "))
+        start_line = int(start_line)
+        end_line = int(end_line)
     except ValueError:
         print("Invalid input")
         return
@@ -271,4 +271,6 @@ def main():
                 os.remove(temp_mp3)
 
 if __name__ == "__main__":
-    main()
+    start = int(input("Enter start line number: "))
+    end = int(input("Enter end line number: "))
+    main(start, end)
