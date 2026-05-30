@@ -1,4 +1,7 @@
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 import json
 import time
 import subprocess
@@ -10,7 +13,7 @@ import essentia
 import numpy as np
 from google import genai
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
 essentia.log.warningActive = False
 
 # Load env

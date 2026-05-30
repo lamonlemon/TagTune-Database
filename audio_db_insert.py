@@ -67,7 +67,7 @@ def main():
             res_vec = supabase.table("song_vectors").upsert(vector_payload).execute()
             
             mark_processed(song_id)
-            print(f"Successfully inserted audio features and vector for song {song_id}.")
+            print(f"Successfully inserted audio features and vector for song {song_id}. {len(entry['artist_vector'])}, {len(entry['audio_vector'])}")
             
         except Exception as e:
             log_error(song_id, str(e))
